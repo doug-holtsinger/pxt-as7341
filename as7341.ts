@@ -70,7 +70,7 @@ namespace AS7341 {
         GAIN_64X = 7,
         GAIN_128X = 8,
         GAIN_256X = 9
-    }
+    };
 
     export enum Channel {
         F1 = 0,
@@ -83,7 +83,7 @@ namespace AS7341 {
         F8 = 7,
         CLEAR = 8,
         NIR = 9
-    }
+    };
 
     // -----------------------------
     // I2C Helpers
