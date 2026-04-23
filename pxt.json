@@ -1,5 +1,5 @@
 {
-  "name": "as7341-full",
+  "name": "pxt-as7341",
   "version": "0.1.0",
   "description": "Full AS7341 spectral sensor driver (Arduino port)",
   "license": "MIT",
