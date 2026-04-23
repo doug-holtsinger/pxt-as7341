@@ -1,8 +1,3 @@
----
-
-### `as7341.ts`
-
-```ts
 // AS7341 Microbit Driver
 // Ported from Adafruit AS7341 Arduino library
 
