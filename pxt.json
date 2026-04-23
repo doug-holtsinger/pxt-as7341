@@ -1,7 +1,7 @@
 {
-  "name": "pxt-as7341",
-  "version": "0.0.1",
-  "description": "AS7341 Spectral Sensor driver for Microbit",
+  "name": "as7341-full",
+  "version": "0.1.0",
+  "description": "Full AS7341 spectral sensor driver (Arduino port)",
   "license": "MIT",
   "dependencies": {
     "core": "*"
@@ -12,3 +12,4 @@
   ],
   "public": true
 }
+
