@@ -142,7 +142,7 @@ namespace AS7341 {
         // Power + Initialization
         // -----------------------------
         //% block="AS7341 initialize sensor (low-level)"
-        begin(): boolean {
+        begin() {
             this.powerEnable(true);
             basic.pause(5);
 
@@ -156,8 +156,6 @@ namespace AS7341 {
             this.setATIME(100);
             this.setASTEP(999);
             this.setGain(Gain.GAIN_4X);
-
-            return true;
         }
 
         powerEnable(on: boolean) {
