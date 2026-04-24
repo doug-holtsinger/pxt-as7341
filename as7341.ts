@@ -183,7 +183,7 @@ namespace AS7341 {
     }
 
     //% block="AS7341 Read Chip ID" weight=70
-    function getID(): number {
+    export function getID(): number {
         return readReg(AS7341_CFG1);
     }
 
@@ -191,7 +191,7 @@ namespace AS7341 {
     // Timing
     // -----------------------------
     //% block="AS7341 initialize ATIME %v" weight=70
-    function setATIME(v: number) {
+    export function setATIME(v: number) {
         writeReg(AS7341_ATIME, v & 0xFF);
     }
 
@@ -200,7 +200,7 @@ namespace AS7341 {
     }
 
     //% block="AS7341 initialize ASTEP %v" weight=70
-    function setASTEP(v: number) {
+    export function setASTEP(v: number) {
         writeReg(AS7341_ASTEP_L, v & 0xFF);
         writeReg(AS7341_ASTEP_H, (v >> 8) & 0xFF);
     }
@@ -232,7 +232,7 @@ namespace AS7341 {
 
     /** Enable or Disable Automatic Gain Control */
     //% block="AS7341 Automatic Gain Control enable %on" weight=60
-    function enableSpectralAGC(agc_enable: boolean) {
+    export function enableSpectralAGC(agc_enable: boolean) {
         let v = readReg(AS7341_CFG8);
         if (agc_enable) {
             v |= 1 << 2;
@@ -397,14 +397,14 @@ namespace AS7341 {
 
     /** Get Digital Saturation */
     //% block="AS7341 read digital saturation" weight=50
-    function getDigitalSaturation(): boolean {
+    export function getDigitalSaturation(): boolean {
         let status = readReg(AS7341_STATUS2);
         return (status & 0x10) != 0;
     }
 
     /** Get Analog Saturation */
     //% block="AS7341 read analog saturation" weight=50
-    function getAnalogSaturation(): boolean {
+    export function getAnalogSaturation(): boolean {
         let status = readReg(AS7341_STATUS2);
         return (status & 0x08) != 0;
     }
