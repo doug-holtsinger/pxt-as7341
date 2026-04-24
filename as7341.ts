@@ -59,16 +59,27 @@ namespace AS7341 {
     // -----------------------------
     // Enums
     // -----------------------------
-    enum Gain {
+    //% block=gain
+    export enum Gain {
+	//% block="0.5x"
         GAIN_0_5X = 0,
+	//% block="1x"
         GAIN_1X = 1,
+	//% block="2x"
         GAIN_2X = 2,
+	//% block="4x"
         GAIN_4X = 3,
+	//% block="8x"
         GAIN_8X = 4,
+	//% block="16x"
         GAIN_16X = 5,
+	//% block="32x"
         GAIN_32X = 6,
+	//% block="64x"
         GAIN_64X = 7,
+	//% block="128x"
         GAIN_128X = 8,
+	//% block="256x"
         GAIN_256X = 9
     };
 
@@ -85,30 +96,30 @@ namespace AS7341 {
         NIR = 9
     };
 
-    /** Channel Colours */
+    /** Channel Colors */
     /** SMUX Config for F1,F2,F3,F4,NIR,Clear */
     /** SMUX Config for F5,F6,F7,F8,NIR,Clear */
-    //% block="color"
-    enum AS7341_CH_COLORS {
-	//% block="violet"
+    //% block=color
+    export enum AS7341_CH_COLORS {
+	//% block=violet
         violet = 0,  // buffer F1
-	//% block="indigo"
+	//% block=indigo
         indigo = 2,  // buffer F2
-	//% block="blue"
+	//% block=blue
         blue   = 4,  // buffer F3
-	//% block="cyan"
+	//% block=cyan
         cyan   = 6,  // buffer F4
-	//% block="green"
+	//% block=green
         green  = 12, // buffer F5
-	//% block="yellow"
+	//% block=yellow
         yellow = 14, // buffer F6
-	//% block="red"
+	//% block=red
         red    = 16, // buffer F7
-	//% block="farred"
+	//% block=farred
         farred = 18, // buffer F8
-	//% block="nir"
+	//% block=nir
         nir    = 20, // buffer NIR
-	//% block="clear"
+	//% block=clear
         clear  = 22  // buffer clear
         //flicker
     };
@@ -175,6 +186,7 @@ namespace AS7341 {
     // -----------------------------
     // Timing
     // -----------------------------
+    //% block="Initialize ATIME %v"
     function setATIME(v: number) {
         writeReg(AS7341_ATIME, v & 0xFF);
     }
@@ -183,6 +195,7 @@ namespace AS7341 {
         return readReg(AS7341_ATIME);
     }
 
+    //% block="Initialize ASTEP %v"
     function setASTEP(v: number) {
         writeReg(AS7341_ASTEP_L, v & 0xFF);
         writeReg(AS7341_ASTEP_H, (v >> 8) & 0xFF);
@@ -204,7 +217,8 @@ namespace AS7341 {
     // -----------------------------
     // Gain
     // -----------------------------
-    function setGain(g: Gain) {
+    //% block="Initialize gain %g"
+    export function setGain(g: Gain) {
         writeReg(AS7341_CFG1, g);
     }
 
@@ -357,10 +371,7 @@ namespace AS7341 {
         }
     }
 
-    // -----------------------------
-    // Blocking read of all channels (SMUX-based)
-    // -----------------------------
-    //
+    /** Read all channel colors */
     //% block="AS7341 read all channels"
     export function readAllChannels() {
 
@@ -384,9 +395,8 @@ namespace AS7341 {
         adc = bfr_L.concat(bfr_H);
     }
 
-    /** Read a channel */
-    //% block="Read %col"
-    //% weight=90 blockGap=8
+    /** Read a channel color and return it */
+    //% block="AS7341 read color %col"
     export function getADC(col: AS7341_CH_COLORS): number {
         return adc.getNumber(NumberFormat.UInt16LE, col)
     }
@@ -477,12 +487,18 @@ namespace AS7341 {
     // -----------------------------
     // Flicker Detection  FIXME
     // -----------------------------
-    //% block="AS7341 start flicker detection"
+
+    //% block="AS7341 detect flicker"
+    export function detectFlicker(): number {
+        startFlickerDetection();
+        basic.pause(50);
+        return readFlickerHz();
+    }
+
     export function startFlickerDetection() {
         writeReg(AS7341_FLICKER_CONTROL, 0x8A);
     }
 
-    //% block="AS7341 read flicker Hz"
     export function readFlickerHz(): number {
         let v = readReg(AS7341_FLICKER_STATUS);
         if (v == 0x01) return 100;
@@ -493,21 +509,15 @@ namespace AS7341 {
     // -----------------------------
     // Advanced Measurement Helpers
     // -----------------------------
-    function startMeasurement() {
-        enableSpectralMeasurement(true);
-    }
 
-    function measurementComplete(): boolean {
-        return measurementReady();
-    }
-
+    // FIXME
     function readBank(bank: number): number[] {
         setBank(bank);
 
         if (bank == 0) setup_F1F4_Clear_NIR();
         else setup_F5F8_Clear_NIR();
 
-        startMeasurement();
+        enableSpectralMeasurement(true);
         basic.pause(getTINT());
 
         let out: number[] = [];
@@ -527,17 +537,6 @@ namespace AS7341 {
         }
 
         return out;
-    }
-
-    // -----------------------------
-    // High-level Convenience API
-    // -----------------------------
-
-    //% block="AS7341 detect flicker"
-    export function detectFlicker(): number {
-        startFlickerDetection();
-        basic.pause(50);
-        return readFlickerHz();
     }
 
 };
