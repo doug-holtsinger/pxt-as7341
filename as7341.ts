@@ -8,6 +8,9 @@ namespace AS7341 {
     // -----------------------------
     // Register Map
     // -----------------------------
+    const AS7341_CONFIG = 0x70;
+    //FIXME
+    const AS7341_STAT = 0x71;
     const AS7341_ENABLE = 0x80;
     const AS7341_ATIME = 0x81;
     const AS7341_WTIME = 0x83;
@@ -17,8 +20,8 @@ namespace AS7341 {
     const AS7341_SP_HIGH_TH_L = 0x86;
     const AS7341_SP_HIGH_TH_H = 0x87;
 
-    const AS7341_ASTATUS = 0x94;
     const AS7341_STATUS = 0x93;
+    const AS7341_ASTATUS = 0x94;
 
     const AS7341_CH0_DATA_L = 0x95;
     const AS7341_CH0_DATA_H = 0x96;
@@ -35,10 +38,13 @@ namespace AS7341 {
 
     const AS7341_STATUS2 = 0xA3;
     const AS7341_STATUS3 = 0xA4;
+    const AS7341_STATUS5 = 0xA6;
 
     const AS7341_CFG0 = 0xA9;
     const AS7341_CFG1 = 0xAA;
     const AS7341_CFG6 = 0xAF;
+
+    const AS7341_CFG8 = 0xB1;
 
     const AS7341_ASTEP_L = 0xCA;
     const AS7341_ASTEP_H = 0xCB;
@@ -50,16 +56,12 @@ namespace AS7341 {
     const AS7341_CONTROL = 0xFA;
     const AS7341_FIFO_MAP = 0xFC;
 
-    const AS7341_FLICKER_CONTROL = 0xB3;
-    const AS7341_FLICKER_STATUS = 0xB4;
-
     const AS7341_LED = 0x74;
     const AS7341_LED_CURRENT = 0x75;
 
     // -----------------------------
     // Enums
     // -----------------------------
-    //% block=gain
     export enum Gain {
 	//% block="0.5x"
         GAIN_0_5X = 0,
@@ -99,7 +101,6 @@ namespace AS7341 {
     /** Channel Colors */
     /** SMUX Config for F1,F2,F3,F4,NIR,Clear */
     /** SMUX Config for F5,F6,F7,F8,NIR,Clear */
-    //% block=color
     export enum AS7341_CH_COLORS {
 	//% block=violet
         violet = 0,  // buffer F1
@@ -159,15 +160,13 @@ namespace AS7341 {
     // -----------------------------
     // Power + Initialization
     // -----------------------------
-    //% block="AS7341 initialize sensor"
+    //% block="AS7341 initialize sensor" weight=100
     export function initialize() {
         powerEnable(true);
         basic.pause(5);
 
         // Enable spectral measurement
-        let v = readReg(AS7341_ENABLE);
-        v |= 0x02; // SP_EN
-        writeReg(AS7341_ENABLE, v);
+        enableSpectralMeasurement(true);
         basic.pause(5);
 
         // Some sane defaults
@@ -183,10 +182,15 @@ namespace AS7341 {
         writeReg(AS7341_ENABLE, v);
     }
 
+    //% block="AS7341 Read Chip ID" weight=70
+    function getID(): number {
+        return readReg(AS7341_CFG1);
+    }
+
     // -----------------------------
     // Timing
     // -----------------------------
-    //% block="Initialize ATIME %v"
+    //% block="AS7341 initialize ATIME %v" weight=70
     function setATIME(v: number) {
         writeReg(AS7341_ATIME, v & 0xFF);
     }
@@ -195,7 +199,7 @@ namespace AS7341 {
         return readReg(AS7341_ATIME);
     }
 
-    //% block="Initialize ASTEP %v"
+    //% block="AS7341 initialize ASTEP %v" weight=70
     function setASTEP(v: number) {
         writeReg(AS7341_ASTEP_L, v & 0xFF);
         writeReg(AS7341_ASTEP_H, (v >> 8) & 0xFF);
@@ -217,13 +221,25 @@ namespace AS7341 {
     // -----------------------------
     // Gain
     // -----------------------------
-    //% block="Initialize gain %g"
+    //% block="AS7341 initialize gain %g" weight=70
     export function setGain(g: Gain) {
         writeReg(AS7341_CFG1, g);
     }
 
     function getGain(): Gain {
         return readReg(AS7341_CFG1);
+    }
+
+    /** Enable or Disable Automatic Gain Control */
+    //% block="AS7341 Automatic Gain Control enable %on" weight=60
+    function enableSpectralAGC(agc_enable: boolean) {
+        let v = readReg(AS7341_CFG8);
+        if (agc_enable) {
+            v |= 1 << 2;
+        } else {
+            v &= ~(1 << 2);
+        }
+        writeReg(AS7341_CFG8, v);
     }
 
     // -----------------------------
@@ -239,7 +255,7 @@ namespace AS7341 {
     // -----------------------------
     function setSMUXCommand(cmd: AS7341_SMUX_CMD) {
         let cfg6_reg = readReg(AS7341_SMUX_EN);
-        // reset fourth and fifth bits
+        // reset third and fourth bits
         cfg6_reg &= ~0x18;
         // write new command
         cfg6_reg |= cmd << 3;
@@ -247,14 +263,28 @@ namespace AS7341 {
     }
 
     function enableSMUX() {
-        setSMUXCommand(AS7341_SMUX_CMD.AS7341_SMUX_CMD_WRITE); // SMUX write
-        basic.pause(20);
+        let v = readReg(AS7341_ENABLE);
+	// set bit 4
+        v |= 0x10;
+        writeReg(AS7341_ENABLE, v);
+        waitForSMUX();
+    }
+
+    function waitForSMUX() {
+        while (!getIsSMUXReady()) {
+            basic.pause(1);
+        }
+    }
+
+    function getIsSMUXReady(): boolean {
+        let status = readReg(AS7341_ENABLE);
+        return (status & 0x10) == 0;
     }
 
     function setBank(bank: number) {
         let cfg0 = readReg(AS7341_CFG0);
-        if (bank == 0) cfg0 &= ~0x04;
-        else cfg0 |= 0x04;
+        if (bank == 0) cfg0 &= ~(1 << 4);
+        else cfg0 |= (1 << 4);
         writeReg(AS7341_CFG0, cfg0);
     }
 
@@ -309,8 +339,8 @@ namespace AS7341 {
         cfg[0x0C] = 0x20; // F2 right connected to ADC1
         cfg[0x0D] = 0x04; // F4 right connected to ADC3
         cfg[0x0E] = 0x00; // F6/F8 right disabled
-        cfg[0x0F] = 0x30; // F3 right connected to AD2
-        cfg[0x10] = 0x01; // F1 right connected to AD0
+        cfg[0x0F] = 0x30; // F3 right connected to ADC2
+        cfg[0x10] = 0x01; // F1 right connected to ADC0
         cfg[0x11] = 0x50; // CLEAR right connected to AD4
         cfg[0x12] = 0x00; // Reserved or disabled
         cfg[0x13] = 0x06; // NIR connected to ADC5
@@ -333,7 +363,7 @@ namespace AS7341 {
             0x00, 0x00, 0x00, 0x00
         ];
 
-    // SMUX Config for F5,F6,F7,F8,NIR,Clear
+        // SMUX Config for F5,F6,F7,F8,NIR,Clear
         cfg[0x00] = 0x00; // F3 left disable
         cfg[0x01] = 0x00; // F1 left disable
         cfg[0x02] = 0x00; // reserved/disable
@@ -365,20 +395,34 @@ namespace AS7341 {
         return (status & 0x40) != 0;
     }
 
-    function delayForData() {
+    /** Get Digital Saturation */
+    //% block="AS7341 read digital saturation" weight=50
+    function getDigitalSaturation(): boolean {
+        let status = readReg(AS7341_STATUS2);
+        return (status & 0x10) != 0;
+    }
+
+    /** Get Analog Saturation */
+    //% block="AS7341 read analog saturation" weight=50
+    function getAnalogSaturation(): boolean {
+        let status = readReg(AS7341_STATUS2);
+        return (status & 0x08) != 0;
+    }
+
+    function waitForData() {
         while (!getIsDataReady()) {
             basic.pause(1);
         }
     }
 
     /** Read all channel colors */
-    //% block="AS7341 read all channels"
+    //% block="AS7341 read all channels" weight=90
     export function readAllChannels() {
 
         // Bank 0: F1–F4 + CLEAR + NIR
         setSMUXLowChannels(true);        // Configure SMUX to read low channels
         enableSpectralMeasurement(true); // Start integration
-        delayForData();                 // I'll wait for you for all time
+        waitForData();
 
         // Read ADC
         pins.i2cWriteNumber(I2C_ADDR, AS7341_CH0_DATA_L, NumberFormat.UInt8BE, true);
@@ -387,7 +431,7 @@ namespace AS7341 {
         // Bank 1: F5–F8 + CLEAR + NIR
         setSMUXLowChannels(false);        // Configure SMUX to read high channels
         enableSpectralMeasurement(true); // Start integration
-        delayForData();                 // I'll wait for you for all time
+        waitForData();
 
         pins.i2cWriteNumber(I2C_ADDR, AS7341_CH0_DATA_L, NumberFormat.UInt8BE, true);
         let bfr_H = pins.i2cReadBuffer(I2C_ADDR, 12, false); // read 12 bytes
@@ -396,7 +440,7 @@ namespace AS7341 {
     }
 
     /** Read a channel color and return it */
-    //% block="AS7341 read color %col"
+    //% block="AS7341 read color %col" weight=80
     export function getADC(col: AS7341_CH_COLORS): number {
         return adc.getNumber(NumberFormat.UInt16LE, col)
     }
@@ -469,7 +513,7 @@ namespace AS7341 {
     // -----------------------------
     // LED Control
     // -----------------------------
-    //% block="AS7341 set indicator LED %on"
+    //% block="AS7341 set indicator LED %on" weight=10
     export function setIndicatorLED(on: boolean) {
         let v = readReg(AS7341_LED);
         if (on) v |= 0x01;
@@ -477,66 +521,12 @@ namespace AS7341 {
         writeReg(AS7341_LED, v);
     }
 
-    //% block="AS7341 set LED current %milliamps"
+    //% block="AS7341 set LED current %milliamps" weight=10
     export function setLEDCurrent(milliamps: number) {
         if (milliamps < 0) milliamps = 0;
         if (milliamps > 20) milliamps = 20;
         writeReg(AS7341_LED_CURRENT, milliamps);
     }
 
-    // -----------------------------
-    // Flicker Detection  FIXME
-    // -----------------------------
-
-    //% block="AS7341 detect flicker"
-    export function detectFlicker(): number {
-        startFlickerDetection();
-        basic.pause(50);
-        return readFlickerHz();
-    }
-
-    export function startFlickerDetection() {
-        writeReg(AS7341_FLICKER_CONTROL, 0x8A);
-    }
-
-    export function readFlickerHz(): number {
-        let v = readReg(AS7341_FLICKER_STATUS);
-        if (v == 0x01) return 100;
-        if (v == 0x02) return 120;
-        return 0;
-    }
-
-    // -----------------------------
-    // Advanced Measurement Helpers
-    // -----------------------------
-
-    // FIXME
-    function readBank(bank: number): number[] {
-        setBank(bank);
-
-        if (bank == 0) setup_F1F4_Clear_NIR();
-        else setup_F5F8_Clear_NIR();
-
-        enableSpectralMeasurement(true);
-        basic.pause(getTINT());
-
-        let out: number[] = [];
-
-        if (bank == 0) {
-            out.push(readChannel(Channel.F1));
-            out.push(readChannel(Channel.F2));
-            out.push(readChannel(Channel.F3));
-            out.push(readChannel(Channel.F4));
-            out.push(readChannel(Channel.CLEAR));
-            out.push(readChannel(Channel.NIR));
-        } else {
-            out.push(readChannel(Channel.F5));
-            out.push(readChannel(Channel.F6));
-            out.push(readChannel(Channel.F7));
-            out.push(readChannel(Channel.F8));
-        }
-
-        return out;
-    }
 
 };
