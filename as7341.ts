@@ -20,6 +20,7 @@ namespace AS7341 {
     const AS7341_SP_HIGH_TH_L = 0x86;
     const AS7341_SP_HIGH_TH_H = 0x87;
 
+    const AS7341_ID = 0x92;
     const AS7341_STATUS = 0x93;
     const AS7341_ASTATUS = 0x94;
 
@@ -184,7 +185,7 @@ namespace AS7341 {
 
     //% block="AS7341 Read Chip ID" weight=70
     export function getID(): number {
-        return readReg(AS7341_CFG1);
+        return readReg(AS7341_ID) >> 2;
     }
 
     // -----------------------------
